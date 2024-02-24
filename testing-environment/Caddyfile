@@ -1,0 +1,24 @@
+# Replace f.example.com with your (sub) domain.
+https://localhost:8080 {
+    # copy or mount the static directory of the repo to /srv/f-bain
+    root * /srv/f-bain
+    encode gzip
+    file_server
+
+    @reverse_proxy {
+        not file {
+            try_files {path} {path}/index.html
+        }
+    }
+	
+    # Forward requests that are not for static files to the API
+    # (change hostname & port if needed)
+    reverse_proxy @reverse_proxy f-bain-api:80 {
+        @error status 404 429
+        handle_response @error {
+            rewrite * /{rp.status_code}.html
+            file_server
+        }
+    }
+
+}

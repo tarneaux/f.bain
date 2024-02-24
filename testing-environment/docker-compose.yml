@@ -1,0 +1,45 @@
+version: '3.8'
+networks:
+  proxy:
+  f-bain:
+services:
+  caddy:
+    image: "caddy:alpine"
+    ports:
+      - 8080:8080
+    volumes:
+      - "./Caddyfile:/etc/caddy/Caddyfile"
+      - "../static:/srv/f-bain"
+    networks:
+      - proxy
+  api:
+    build: ../api
+    depends_on:
+      - redis
+    hostname: f-bain-api
+    volumes:
+      - "../mount:/mount"
+    networks:
+      - proxy
+      - f-bain
+    environment:
+      # token to protect the /status endpoint, leave empty to make it public
+      # the endpoint can be expensive, so it's recommended to make it private for large deployments
+      - STATUS_TOKEN=
+      # token to protect admin features, leave empty to disable them entirely
+      - ADMIN_TOKEN=
+      # max upload size in bytes
+      - MAX_FILE_SIZE=500000000
+      # size of uuids for files, increase it to add security or when you're expecting a decent amount of traffic
+      - UUID_SIZE=5
+      # disable most of logging
+      - LOG_LEVEL=ERROR
+      - ACCESS_LOG=
+  redis:
+    image: "redis:alpine"
+    hostname: redis
+    networks:
+      - f-bain
+    volumes:
+    - "../redis_db:/data"
+
